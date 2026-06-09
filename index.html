@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelForge — Image Studio</title>
+</head>
+
+<body>
+    <div id="cursor"></div>
+    <div id="cursorRing"></div>
+    <nav>
+        <div>Pixel<span>Forge</span></div>
+        <ul>
+            <li><a href="#tools">Tools</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#stats">Stats</a></li>
+        </ul>
+        <a href="#tools">Try Free</a>
+    </nav>
+    <section>
+        <div><span></span> Professional Image Studio</div>
+        <h1>Transform every<br><em>image, instantly.</em></h1>
+        <p>Resize, convert, compress, crop — precision tools built for designers, developers and creators who demand more.</p>
+        <div>
+            <a href="#tools">Start Editing →</a>
+            <a href="#features">Explore Features</a>
+        </div>
+        <div>
+            <div>
+                <div>
+                    <div>🖼️</div>
+                    <div>
+                        <div>Resize</div>
+                        <div>4096×2160 → 1920×1080</div>
+                    </div>
+                    <div>-72%</div>
+                </div>
+                <div>
+                    <div>🔄</div>
+                    <div>
+                        <div>Convert</div>
+                        <div>PNG → WebP</div>
+                    </div>
+                    <div>WebP</div>
+                </div>
+                <div>
+                    <div>⚡</div>
+                    <div>
+                        <div>Compress</div>
+                        <div>8.4MB → 320KB</div>
+                    </div>
+                    <div>-96%</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section id="tools">
+        <p>Image Studio</p>
+        <h2>Drop your image.<br>We'll handle the rest.</h2>
+        <div id="uploadZone">
+            <div>📁</div>
+            <div>Drag &amp; drop your image here</div>
+            <div>or <span onclick="document.getElementById('fileInput').click()">browse files</span> from your device</div>
+            <div>
+                <span>JPEG</span><span>PNG</span><span>WebP</span>
+                <span>GIF</span><span>BMP</span><span>TIFF</span>
+                <span>SVG</span><span>AVIF</span>
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        <div id="toolsPanel">
+            <div>
+                <div id="fileThumb">🖼️</div>
+                <div>
+                    <div id="fileName">image.png</div>
+                    <div id="fileMeta">0 KB · 0 × 0 px</div>
+                </div>
+                <button onclick="closePanel()">✕</button>
+            </div> ``` <div>
+                <button onclick="switchTab(this,'resize')">↔ Resize</button>
+                <button onclick="switchTab(this,'convert')">🔄 Convert</button>
+                <button onclick="switchTab(this,'compress')">⚡ Compress</button>
+                <button onclick="switchTab(this,'crop')">✂ Crop</button>
+                <button onclick="switchTab(this,'rotate')">🔃 Rotate & Flip</button>
+                <button onclick="switchTab(this,'filter')">🎨 Filters</button>
+            </div>
+            <div>
+                <div id="pane-resize">
+                    <div>
+                        <div>
+                            <label>Width (px)</label>
+                            <input type="number" id="rWidth" placeholder="e.g. 1920" min="1">
+                        </div>
+                        <div>
+                            <label>Height (px)</label>
+                            <input type="number" id="rHeight" placeholder="e.g. 1080" min="1">
+                        </div>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="lockAspect" checked>
+                        <label for="lockAspect">Lock aspect ratio</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="upscale">
+                        <label for="upscale">Allow upscaling</label>
+                    </div>
+                    <button onclick="doResize()">Resize Image</button>
+                    <div id="resizeResult">
+                        <div>✅</div>
+                        <div>
+                            <div>Ready to download</div>
+                            <div id="resizeName"></div>
+                        </div>
+                        <a id="resizeLink" download>Download</a>
+                    </div>
+                </div>
+                <div id="pane-convert">
+                    <div>Select output format</div>
+                    <div>
+                        <div onclick="selectFormat(this,'image/jpeg','jpg')"><span>🖼</span>JPEG</div>
+                        <div onclick="selectFormat(this,'image/png','png')"><span>🖼</span>PNG</div>
+                        <div onclick="selectFormat(this,'image/webp','webp')"><span>⚡</span>WebP</div>
+                        <div onclick="selectFormat(this,'image/gif','gif')"><span>🎞</span>GIF</div>
+                        <div onclick="selectFormat(this,'image/bmp','bmp')"><span>🗂</span>BMP</div>
+                        <div onclick="selectFormat(this,'image/tiff','tiff')"><span>🗂</span>TIFF</div>
+                        <div onclick="selectFormat(this,'image/avif','avif')"><span>🚀</span>AVIF</div>
+                        <div onclick="selectFormat(this,'image/ico','ico')"><span>🔲</span>ICO</div>
+                    </div>
+                    <div>
+                        <div>Quality <span id="convQLabel">90</span>%</div>
+                        <input type="range" id="convQ" min="10" max="100" value="90" oninput="document.getElementById('convQLabel').textContent=this.value">
+                    </div>
+                    <button onclick="doConvert()">Convert Image</button>
+                    <div id="convertResult">
+                        <div>✅</div>
+                        <div>
+                            <div>Converted</div>
+                            <div id="convertName"></div>
+                        </div>
+                        <a id="convertLink" download>Download</a>
+                    </div>
+                </div>
+                <div id="pane-compress">
+                    <div>
+                        <div>Quality <span id="cmpQLabel">75</span>%</div>
+                        <input type="range" id="cmpQ" min="5" max="100" value="75" oninput="document.getElementById('cmpQLabel').textContent=this.value">
+                    </div>
+                    <div>
+                        <div>Max Width <span id="cmpWLabel">Original</span></div>
+                        <input type="range" id="cmpW" min="100" max="4000" value="4000" step="100" oninput="document.getElementById('cmpWLabel').textContent=this.value==4000?'Original':this.value+'px'">
+                    </div>
+                    <button onclick="doCompress()">Compress Image</button>
+                    <div id="compressResult">
+                        <div>⚡</div>
+                        <div>
+                            <div>Compressed</div>
+                            <div id="compressName"></div>
+                        </div>
+                        <a id="compressLink" download>Download</a>
+                    </div>
+                </div>
+                <div id="pane-crop">
+                    <div>Click and drag on the image to select crop area</div>
+                    <div id="cropContainer">
+                        <canvas id="cropCanvas"></canvas>
+                        <div id="cropOverlay"></div>
+                    </div>
+                    <div>
+                        <div><label>X</label><input type="number" id="cropX" value="0" min="0"></div>
+                        <div><label>Y</label><input type="number" id="cropY" value="0" min="0"></div>
+                        <div><label>Width</label><input type="number" id="cropW" value="100" min="1"></div>
+                        <div><label>Height</label><input type="number" id="cropH" value="100" min="1"></div>
+                    </div>
+                    <button onclick="doCrop()">Crop Image</button>
+                    <div id="cropResult">
+                        <div>✂</div>
+                        <div>
+                            <div>Cropped</div>
+                            <div id="cropName"></div>
+                        </div>
+                        <a id="cropLink" download>Download</a>
+                    </div>
+                </div>
+                <div id="pane-rotate">
+                    <div>
+                        <button onclick="doRotate(90)">↻ Rotate 90°</button>
+                        <button onclick="doRotate(-90)">↺ Rotate -90°</button>
+                        <button onclick="doRotate(180)">↻ Rotate 180°</button>
+                        <button onclick="doFlip('h')">↔ Flip Horizontal</button>
+                        <button onclick="doFlip('v')" style="background:var(--graphite);color:var(--white);">↕ Flip Vertical</button>
+                    </div>
+                    <div id="previewContainer"><img id="previewImg" src="" alt="Preview"></div>
+                    <div id="rotateResult">
+                        <div>🔃</div>
+                        <div>
+                            <div>Transformed</div>
+                            <div id="rotateName"></div>
+                        </div>
+                        <a id="rotateLink" download>Download</a>
+                    </div>
+                </div>
+                <div id="pane-filter">
+                    <div>
+                        <div>Brightness <span id="brtLabel">100</span>%</div>
+                        <input type="range" id="brt" min="0" max="200" value="100" oninput="document.getElementById('brtLabel').textContent=this.value;applyFilters()">
+                    </div>
+                    <div>
+                        <div>Contrast <span id="cntLabel">100</span>%</div>
+                        <input type="range" id="cnt" min="0" max="200" value="100" oninput="document.getElementById('cntLabel').textContent=this.value;applyFilters()">
+                    </div>
+                    <div>
+                        <div>Saturation <span id="satLabel">100</span>%</div>
+                        <input type="range" id="sat" min="0" max="200" value="100" oninput="document.getElementById('satLabel').textContent=this.value;applyFilters()">
+                    </div>
+                    <div>
+                        <div>Blur <span id="blrLabel">0</span>px</div>
+                        <input type="range" id="blr" min="0" max="20" value="0" oninput="document.getElementById('blrLabel').textContent=this.value;applyFilters()">
+                    </div>
+                    <div>
+                        <div>Grayscale <span id="gryLabel">0</span>%</div>
+                        <input type="range" id="gry" min="0" max="100" value="0" oninput="document.getElementById('gryLabel').textContent=this.value;applyFilters()">
+                    </div>
+                    <div id="previewContainer" id="filterPreviewCont"><img id="previewImg" src="" alt="Preview"></div>
+                    <button onclick="doFilter()">Apply Filters &amp; Save</button>
+                    <div id="filterResult">
+                        <div>🎨</div>
+                        <div>
+                            <div>Filtered</div>
+                            <div id="filterName"></div>
+                        </div>
+                        <a id="filterLink" download>Download</a>
+                    </div>
+                </div>
+            </div>```
+        </div>
+    </section>
+    <section id="features">
+        <p>Why PixelForge</p>
+        <h2>Every tool you need.<br>Nothing you don't.</h2>
+        <div>
+            <div>
+                <div>🔒</div>
+                <div>100% Private</div>
+                <div>Every operation runs entirely in your browser. Your images never leave your device. No uploads to servers, ever.</div>
+            </div>
+            <div>
+                <div>⚡</div>
+                <div>Instant Processing</div>
+                <div>WebAssembly-powered canvas engine processes images in milliseconds — even large RAW files and 4K originals.</div>
+            </div>
+            <div>
+                <div>🎨</div>
+                <div>8 Output Formats</div>
+                <div>Export to JPEG, PNG, WebP, GIF, BMP, TIFF, AVIF, and ICO with full quality control over each format.</div>
+            </div>
+            <div>
+                <div>↔</div>
+                <div>Smart Resizing</div>
+                <div>Resize with locked aspect ratio, custom dimensions, or pixel-perfect scaling. No distortion, ever.</div>
+            </div>
+            <div>
+                <div>✂</div>
+                <div>Precision Crop</div>
+                <div>Interactive drag-to-crop canvas with exact coordinate controls. Get the exact frame you need.</div>
+            </div>
+            <div>
+                <div>🎛</div>
+                <div>Live Filters</div>
+                <div>Real-time brightness, contrast, saturation, blur, and grayscale adjustments with instant live preview.</div>
+            </div>
+        </div>
+    </section>
+    <div id="stats">
+        <div>
+            <div>50<span>M+</span></div>
+            <div>Images processed</div>
+        </div>
+        <div>
+            <div>8</div>
+            <div>Output formats</div>
+        </div>
+        <div>
+            <div>0<span>KB</span></div>
+            <div>Data sent to servers</div>
+        </div>
+        <div>
+            <div>100<span>%</span></div>
+            <div>Free, forever</div>
+        </div>
+    </div>
+    <footer>
+        <div>Pixel<span>Forge</span></div>
+        <ul>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Open Source</a></li>
+            <li><a href="#">API Docs</a></li>
+        </ul>
+        <span>© 2026 PixelForge. All rights reserved.</span>
+    </footer>
+    <div id="toast"></div>
+    <script>
+        // ── Cursor ──
+        const cursor = document.getElementById('cursor');
+        const ring = document.getElementById('cursorRing');
+        let mx=0,my=0,rx=0,ry=0;
+        document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cursor.style.left=mx+'px'; cursor.style.top=my+'px'; });
+        (function animRing(){
+          rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12;
+          ring.style.left=rx+'px'; ring.style.top=ry+'px';
+          requestAnimationFrame(animRing);
+        })();
+        document.querySelectorAll('a,button,.format-btn,.feature-card,.upload-zone').forEach(el=>{
+          el.addEventListener('mouseenter',()=>{cursor.style.transform='translate(-50%,-50%) scale(1.5)';ring.style.transform='translate(-50%,-50%) scale(1.4)';});
+          el.addEventListener('mouseleave',()=>{cursor.style.transform='translate(-50%,-50%) scale(1)';ring.style.transform='translate(-50%,-50%) scale(1)';});
+        });
+        
+        // ── Scroll reveal ──
+        const obs = new IntersectionObserver(entries => {
+          entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); });
+        }, { threshold: 0.15 });
+        document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+        
+        // ── Toast ──
+        function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }
+        
+        // ── State ──
+        let currentImage=null, imgW=0, imgH=0, imgName='image', selectedFmt='image/jpeg', selectedExt='jpg';
+        
+        // ── Upload ──
+        const zone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        
+        zone.addEventListener('click', ()=>fileInput.click());
+        zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('drag-over'); });
+        zone.addEventListener('dragleave', ()=>zone.classList.remove('drag-over'));
+        zone.addEventListener('drop', e=>{ e.preventDefault(); zone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+        fileInput.addEventListener('change', ()=>handleFile(fileInput.files[0]));
+        
+        function handleFile(file){
+          if(!file||!file.type.startsWith('image/')) return toast('⚠ Please upload a valid image file.');
+          const reader = new FileReader();
+          reader.onload = e => {
+            const img = new Image();
+            img.onload = ()=>{
+              imgW=img.width; imgH=img.height;
+              document.getElementById('rWidth').value=imgW;
+              document.getElementById('rHeight').value=imgH;
+              document.getElementById('cropW').value=imgW;
+              document.getElementById('cropH').value=imgH;
+              currentImage=img;
+              imgName=file.name.replace(/\.[^.]+$/,'');
+              document.getElementById('fileName').textContent=file.name;
+              document.getElementById('fileMeta').textContent=formatBytes(file.size)+' · '+imgW+' × '+imgH+' px';
+              // Thumb
+              const th=document.getElementById('fileThumb');
+              th.innerHTML='<img src="'+e.target.result+'" alt="">';
+              document.getElementById('toolsPanel').classList.add('visible');
+              document.getElementById('toolsPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
+              initCropCanvas();
+              initFilterPreview();
+            };
+            img.src=e.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+        function formatBytes(b){ if(b<1024)return b+' B'; if(b<1048576)return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(2)+' MB'; }
+        
+        function closePanel(){
+          document.getElementById('toolsPanel').classList.remove('visible');
+          currentImage=null;
+          fileInput.value='';
+        }
+        
+        // ── Tabs ──
+        function switchTab(el,id){
+          document.querySelectorAll('.tool-tab').forEach(t=>t.classList.remove('active'));
+          document.querySelectorAll('.tool-pane').forEach(p=>p.classList.remove('active'));
+          el.classList.add('active');
+          document.getElementById('pane-'+id).classList.add('active');
+          if(id==='crop') initCropCanvas();
+          if(id==='filter') initFilterPreview();
+        }
+        
+        // ── Canvas helper ──
+        function getCanvas(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+        
+        // ── Resize ──
+        const lockAspect=document.getElementById('lockAspect');
+        document.getElementById('rWidth').addEventListener('input', function(){
+          if(lockAspect.checked && imgH && imgW) document.getElementById('rHeight').value=Math.round(this.value*(imgH/imgW));
+        });
+        document.getElementById('rHeight').addEventListener('input', function(){
+          if(lockAspect.checked && imgH && imgW) document.getElementById('rWidth').value=Math.round(this.value*(imgW/imgH));
+        });
+        
+        function doResize(){
+          if(!currentImage) return;
+          let w=parseInt(document.getElementById('rWidth').value)||imgW;
+          let h=parseInt(document.getElementById('rHeight').value)||imgH;
+          if(!document.getElementById('upscale').checked){ w=Math.min(w,imgW); h=Math.min(h,imgH); }
+          const c=getCanvas(w,h); c.getContext('2d').drawImage(currentImage,0,0,w,h);
+          const url=c.toDataURL('image/png');
+          const link=document.getElementById('resizeLink'); link.href=url; link.download=imgName+'_'+w+'x'+h+'.png';
+          document.getElementById('resizeName').textContent=imgName+'_'+w+'x'+h+'.png · '+w+'×'+h+' px';
+          document.getElementById('resizeResult').classList.add('show');
+          toast('✅ Resized to '+w+'×'+h);
+        }
+        
+        // ── Convert ──
+        function selectFormat(el,type,ext){
+          document.querySelectorAll('.format-btn').forEach(b=>b.classList.remove('selected'));
+          el.classList.add('selected'); selectedFmt=type; selectedExt=ext;
+        }
+        function doConvert(){
+          if(!currentImage) return;
+          if(!selectedFmt){ toast('⚠ Select a format first'); return; }
+          const q=parseInt(document.getElementById('convQ').value)/100;
+          const c=getCanvas(imgW,imgH); c.getContext('2d').drawImage(currentImage,0,0);
+          // For formats canvas doesn't support natively, fall back to webp/jpeg
+          const safeFmt = ['image/jpeg','image/png','image/webp','image/gif','image/bmp'].includes(selectedFmt) ? selectedFmt : 'image/png';
+          const url=c.toDataURL(safeFmt,q);
+          const link=document.getElementById('convertLink'); link.href=url; link.download=imgName+'.'+selectedExt;
+          document.getElementById('convertName').textContent=imgName+'.'+selectedExt+' ('+selectedExt.toUpperCase()+')';
+          document.getElementById('convertResult').classList.add('show');
+          toast('✅ Converted to '+selectedExt.toUpperCase());
+        }
+        
+        // ── Compress ──
+        function doCompress(){
+          if(!currentImage) return;
+          const q=parseInt(document.getElementById('cmpQ').value)/100;
+          const maxW=parseInt(document.getElementById('cmpW').value);
+          let w=imgW, h=imgH;
+          if(maxW<imgW){ w=maxW; h=Math.round(imgH*(maxW/imgW)); }
+          const c=getCanvas(w,h); c.getContext('2d').drawImage(currentImage,0,0,w,h);
+          const url=c.toDataURL('image/jpeg',q);
+          // Estimate size
+          const bytes=Math.round((url.length-22)*0.75);
+          const link=document.getElementById('compressLink'); link.href=url; link.download=imgName+'_compressed.jpg';
+          document.getElementById('compressName').textContent=imgName+'_compressed.jpg · ~'+formatBytes(bytes);
+          document.getElementById('compressResult').classList.add('show');
+          toast('⚡ Compressed to ~'+formatBytes(bytes));
+        }
+        
+        // ── Crop ──
+        let cropX=0,cropY=0,cropW=0,cropH=0,isCropping=false,startX=0,startY=0,scaleX=1,scaleY=1;
+        function initCropCanvas(){
+          if(!currentImage) return;
+          const container=document.getElementById('cropContainer');
+          const canvas=document.getElementById('cropCanvas');
+          const maxW=container.clientWidth||640;
+          const scale=Math.min(maxW/imgW,300/imgH,1);
+          canvas.width=Math.round(imgW*scale); canvas.height=Math.round(imgH*scale);
+          scaleX=imgW/canvas.width; scaleY=imgH/canvas.height;
+          canvas.getContext('2d').drawImage(currentImage,0,0,canvas.width,canvas.height);
+        
+          canvas.onmousedown=e=>{ isCropping=true; const r=canvas.getBoundingClientRect(); startX=e.clientX-r.left; startY=e.clientY-r.top; };
+          canvas.onmousemove=e=>{
+            if(!isCropping) return;
+            const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; const y=e.clientY-r.top;
+            cropX=Math.round(Math.min(startX,x)*scaleX); cropY=Math.round(Math.min(startY,y)*scaleY);
+            cropW=Math.round(Math.abs(x-startX)*scaleX); cropH=Math.round(Math.abs(y-startY)*scaleY);
+            document.getElementById('cropX').value=cropX; document.getElementById('cropY').value=cropY;
+            document.getElementById('cropW').value=cropW; document.getElementById('cropH').value=cropH;
+            const ov=document.getElementById('cropOverlay');
+            ov.style.display='block';
+            ov.style.left=Math.min(startX,x)+'px'; ov.style.top=Math.min(startY,y)+'px';
+            ov.style.width=Math.abs(x-startX)+'px'; ov.style.height=Math.abs(y-startY)+'px';
+          };
+          canvas.onmouseup=()=>{ isCropping=false; };
+        }
+        function doCrop(){
+          if(!currentImage) return;
+          const x=parseInt(document.getElementById('cropX').value)||0;
+          const y=parseInt(document.getElementById('cropY').value)||0;
+          const w=parseInt(document.getElementById('cropW').value)||imgW;
+          const h=parseInt(document.getElementById('cropH').value)||imgH;
+          const c=getCanvas(w,h); c.getContext('2d').drawImage(currentImage,x,y,w,h,0,0,w,h);
+          const url=c.toDataURL('image/png');
+          const link=document.getElementById('cropLink'); link.href=url; link.download=imgName+'_cropped.png';
+          document.getElementById('cropName').textContent=imgName+'_cropped.png · '+w+'×'+h+' px';
+          document.getElementById('cropResult').classList.add('show');
+          toast('✂ Cropped to '+w+'×'+h);
+        }
+        
+        // ── Rotate/Flip ──
+        let rotatedImage=null;
+        function doRotate(deg){
+          const src = rotatedImage||currentImage; if(!src) return;
+          const rad=deg*Math.PI/180;
+          const ow=src.width||src.naturalWidth||imgW, oh=src.height||src.naturalHeight||imgH;
+          const sw=Math.abs(Math.round(ow*Math.cos(rad)+oh*Math.sin(rad)));
+          const sh=Math.abs(Math.round(oh*Math.cos(rad)+ow*Math.sin(rad)));
+          const c=getCanvas(sw,sh); const ctx=c.getContext('2d');
+          ctx.translate(sw/2,sh/2); ctx.rotate(rad); ctx.drawImage(src,-ow/2,-oh/2);
+          showRotResult(c);
+        }
+        function doFlip(dir){
+          const src=rotatedImage||currentImage; if(!src) return;
+          const ow=src.width||imgW, oh=src.height||imgH;
+          const c=getCanvas(ow,oh); const ctx=c.getContext('2d');
+          if(dir==='h'){ ctx.translate(ow,0); ctx.scale(-1,1); }
+          else { ctx.translate(0,oh); ctx.scale(1,-1); }
+          ctx.drawImage(src,0,0);
+          showRotResult(c);
+        }
+        function showRotResult(c){
+          const url=c.toDataURL('image/png');
+          const img=new Image(); img.src=url; rotatedImage=img;
+          const pc=document.getElementById('pane-rotate').querySelector('#previewContainer')||document.createElement('div');
+          document.getElementById('previewImg').src=url;
+          document.getElementById('previewContainer').style.display='block';
+          const link=document.getElementById('rotateLink'); link.href=url; link.download=imgName+'_rotated.png';
+          document.getElementById('rotateName').textContent=imgName+'_rotated.png';
+          document.getElementById('rotateResult').classList.add('show');
+          toast('🔃 Transform applied');
+        }
+        
+        // ── Filters ──
+        let filterCanvas=null;
+        function initFilterPreview(){
+          if(!currentImage) return;
+          filterCanvas=getCanvas(imgW,imgH);
+          filterCanvas.getContext('2d').drawImage(currentImage,0,0);
+          applyFilters();
+        }
+        function applyFilters(){
+          if(!currentImage) return;
+          const c=getCanvas(imgW,imgH); const ctx=c.getContext('2d');
+          const brt=document.getElementById('brt').value;
+          const cnt=document.getElementById('cnt').value;
+          const sat=document.getElementById('sat').value;
+          const blr=document.getElementById('blr').value;
+          const gry=document.getElementById('gry').value;
+          ctx.filter=`brightness(${brt}%) contrast(${cnt}%) saturate(${sat}%) blur(${blr}px) grayscale(${gry}%)`;
+          ctx.drawImage(currentImage,0,0);
+          filterCanvas=c;
+          document.getElementById('previewImg').src=c.toDataURL();
+          document.getElementById('previewContainer').style.display='block';
+        }
+        function doFilter(){
+          if(!filterCanvas) return;
+          const url=filterCanvas.toDataURL('image/png');
+          const link=document.getElementById('filterLink'); link.href=url; link.download=imgName+'_filtered.png';
+          document.getElementById('filterName').textContent=imgName+'_filtered.png';
+          document.getElementById('filterResult').classList.add('show');
+          toast('🎨 Filters applied');
+        }
+    </script>
+
+<div style="bottom: 10px; right: 10px; position: absolute;"><a href="https://signatureforemail.com/?utm_source=wth_free_link&utm_medium=external" target="_blank" rel="noopener" style="font-size:11px; color: #c0c0c0;">Mobile-Friendly Email Signature Generator</a></div>
+</body>
+
+</html>
