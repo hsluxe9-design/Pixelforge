@@ -1,556 +1,1310 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PixelForge — Image Studio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixelForge — Image Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES — note: DOUBLE hyphens (--) required
+   ============================================================ */
+:root {
+  --black:   #0a0a0a;
+  --ink:     #111113;
+  --carbon:  #1c1c1f;
+  --graphite:#2a2a2e;
+  --mid:     #3d3d42;
+  --muted:   #6b6b72;
+  --silver:  #9b9ba4;
+  --light:   #c8c8d0;
+  --ghost:   #e8e8ed;
+  --white:   #f5f5f7;
+  --accent:  #a8a8b8;
+  --glow:    rgba(168,168,184,0.12);
+  --glass:   rgba(255,255,255,0.04);
+  --border:  rgba(255,255,255,0.07);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--black);
+  color: var(--light);
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── Custom cursor ── */
+.cursor {
+  width: 10px; height: 10px;
+  background: var(--white);
+  border-radius: 50%;
+  position: fixed; pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: transform 0.1s, width 0.2s, height 0.2s;
+  mix-blend-mode: difference;
+}
+.cursor-ring {
+  width: 36px; height: 36px;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 50%;
+  position: fixed; pointer-events: none; z-index: 9998;
+  transform: translate(-50%,-50%);
+  transition: transform 0.18s ease, width 0.3s, height 0.3s;
+}
+@media (hover: none) {
+  .cursor, .cursor-ring { display: none; }
+  body { cursor: auto; }
+}
+
+/* ── Noise overlay ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 48px;
+  background: rgba(10,10,10,0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px; font-weight: 800;
+  color: var(--white);
+  letter-spacing: -0.5px;
+  text-decoration: none;
+}
+.logo span { color: var(--silver); }
+.nav-links { display: flex; gap: 36px; list-style: none; }
+.nav-links a {
+  color: var(--muted); text-decoration: none;
+  font-size: 13px; font-weight: 500;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--white); }
+.nav-cta {
+  background: var(--white); color: var(--black);
+  padding: 9px 22px; border-radius: 40px;
+  font-size: 13px; font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.2s;
+}
+.nav-cta:hover { background: var(--ghost); transform: translateY(-1px); }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 120px 24px 80px;
+  position: relative; overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(148,148,168,0.08) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%,-55%);
+  pointer-events: none;
+  animation: heroPulse 6s ease-in-out infinite;
+}
+@keyframes heroPulse {
+  0%,100% { opacity: 0.6; transform: translate(-50%,-55%) scale(1); }
+  50%      { opacity: 1;   transform: translate(-50%,-55%) scale(1.08); }
+}
+
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 6px 16px;
+  font-size: 12px; color: var(--silver); letter-spacing: 1px; text-transform: uppercase;
+  margin-bottom: 32px;
+  animation: fadeUp 0.7s ease both;
+  position: relative; z-index: 1;
+}
+.hero-tag .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--silver);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.hero h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(52px, 8vw, 96px);
+  font-weight: 800; line-height: 1.0;
+  color: var(--white);
+  letter-spacing: -3px;
+  max-width: 900px;
+  animation: fadeUp 0.8s 0.1s ease both;
+  position: relative; z-index: 1;
+}
+.hero h1 em {
+  font-style: normal;
+  background: linear-gradient(135deg, #c0c0cc 0%, #6b6b80 50%, #c0c0cc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% auto;
+  animation: shimmer 4s linear infinite;
+}
+@keyframes shimmer { to { background-position: 200% center; } }
+
+.hero-sub {
+  margin-top: 24px;
+  font-size: 18px; color: var(--muted); line-height: 1.7;
+  max-width: 520px;
+  animation: fadeUp 0.8s 0.2s ease both;
+  position: relative; z-index: 1;
+}
+
+.hero-actions {
+  margin-top: 44px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+  animation: fadeUp 0.8s 0.3s ease both;
+  position: relative; z-index: 1;
+}
+.btn-primary {
+  background: var(--white); color: var(--black);
+  padding: 14px 32px; border-radius: 40px;
+  font-size: 14px; font-weight: 600; text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(255,255,255,0.12);
+}
+.btn-ghost {
+  background: transparent; color: var(--light);
+  padding: 14px 32px; border-radius: 40px;
+  font-size: 14px; font-weight: 500; text-decoration: none;
+  border: 1px solid var(--border);
+  transition: border-color 0.2s, color 0.2s, transform 0.2s;
+}
+.btn-ghost:hover { border-color: var(--silver); color: var(--white); transform: translateY(-2px); }
+
+/* Hero visual cards */
+.hero-visual {
+  margin-top: 72px; position: relative;
+  width: 100%; max-width: 720px;
+  animation: fadeUp 0.9s 0.4s ease both;
+  z-index: 1;
+}
+.image-card-grid {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 14px;
+}
+.image-card {
+  background: var(--carbon);
+  border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  position: relative;
+}
+.image-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+.image-card .card-thumb {
+  height: 120px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+  background: linear-gradient(135deg, var(--graphite), var(--carbon));
+}
+.image-card .card-info { padding: 12px 14px; }
+.card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+.card-val { font-size: 13px; color: var(--light); font-weight: 500; margin-top: 2px; }
+.card-badge {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(0,0,0,0.6); border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 11px; color: var(--silver);
+}
+
+/* ── SECTIONS ── */
+.section { padding: 100px 48px; max-width: 1200px; margin: 0 auto; }
+
+.section-eyebrow {
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 2px;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 800; color: var(--white);
+  letter-spacing: -1.5px; line-height: 1.1;
+  margin-bottom: 48px;
+}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 2px dashed var(--mid);
+  border-radius: 24px;
+  padding: 72px 40px;
+  text-align: center;
+  background: var(--glass);
+  transition: border-color 0.3s, background 0.3s;
+  cursor: pointer;
+  position: relative; overflow: hidden;
+}
+.upload-zone::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(168,168,184,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: var(--silver);
+  background: rgba(255,255,255,0.03);
+}
+.upload-icon {
+  width: 64px; height: 64px; margin: 0 auto 20px;
+  background: var(--graphite); border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  transition: transform 0.3s;
+}
+.upload-zone:hover .upload-icon { transform: scale(1.05) translateY(-2px); }
+.upload-title { font-size: 20px; font-weight: 600; color: var(--white); margin-bottom: 8px; }
+.upload-sub { font-size: 14px; color: var(--muted); }
+.upload-sub span { color: var(--silver); text-decoration: underline; cursor: pointer; }
+.upload-formats {
+  margin-top: 24px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+}
+.fmt-pill {
+  background: var(--graphite); border: 1px solid var(--mid);
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 11px; color: var(--silver); font-weight: 500;
+}
+#fileInput { display: none; }
+
+/* ── TOOLS PANEL ── */
+.tools-panel {
+  display: none;
+  margin-top: 40px;
+  background: var(--carbon);
+  border: 1px solid var(--border);
+  border-radius: 24px; overflow: hidden;
+}
+.tools-panel.visible { display: block; animation: fadeUp 0.5s ease both; }
+
+.panel-header {
+  padding: 24px 28px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 14px;
+}
+.file-thumb {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: var(--graphite); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.file-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.file-meta-name { font-size: 15px; font-weight: 600; color: var(--white); }
+.file-meta-info { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.panel-close {
+  margin-left: auto; background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 20px; transition: color 0.2s;
+  font-family: inherit;
+}
+.panel-close:hover { color: var(--white); }
+
+.tools-tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  overflow-x: auto; scrollbar-width: none;
+}
+.tools-tabs::-webkit-scrollbar { display: none; }
+.tool-tab {
+  padding: 16px 22px; font-size: 13px; font-weight: 500;
+  color: var(--muted); cursor: pointer; border: none;
+  background: none; white-space: nowrap; font-family: inherit;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.tool-tab.active { color: var(--white); border-bottom-color: var(--silver); }
+.tool-tab:hover:not(.active) { color: var(--light); }
+
+.tool-content { padding: 32px 28px; }
+.tool-pane { display: none; }
+.tool-pane.active { display: block; animation: fadeIn 0.3s ease; }
+
+/* Controls */
+.control-row { margin-bottom: 28px; }
+.control-label {
+  display: flex; justify-content: space-between;
+  font-size: 13px; color: var(--silver); margin-bottom: 10px; font-weight: 500;
+}
+.control-label span { color: var(--white); font-weight: 600; }
+
+input[type=range] {
+  width: 100%; -webkit-appearance: none; height: 4px;
+  background: var(--graphite); border-radius: 4px; outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px;
+  background: var(--white); border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  transition: transform 0.2s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type=range]::-moz-range-thumb {
+  width: 18px; height: 18px;
+  background: var(--white); border-radius: 50%;
+  border: none;
+}
+
+.dim-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+.input-group label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; }
+.input-group input[type=number] {
+  width: 100%; padding: 11px 14px;
+  background: var(--graphite); border: 1px solid var(--mid);
+  border-radius: 10px; color: var(--white); font-family: inherit;
+  font-size: 14px; font-weight: 500; outline: none;
+  transition: border-color 0.2s;
+  -moz-appearance: textfield;
+}
+.input-group input[type=number]::-webkit-inner-spin-button { display: none; }
+.input-group input[type=number]:focus { border-color: var(--silver); }
+
+.format-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
+.format-btn {
+  background: var(--graphite); border: 1px solid var(--mid);
+  border-radius: 12px; padding: 14px 10px;
+  color: var(--silver); font-size: 13px; font-weight: 600;
+  cursor: pointer; text-align: center; font-family: inherit;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+.format-btn:hover { background: var(--mid); color: var(--white); transform: translateY(-2px); }
+.format-btn.selected { background: var(--mid); border-color: var(--silver); color: var(--white); }
+.format-btn .fmt-ext { font-size: 16px; display: block; margin-bottom: 4px; }
+
+.checkbox-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.checkbox-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--silver); cursor: pointer; }
+.checkbox-row label { font-size: 13px; color: var(--light); cursor: pointer; }
+
+.action-btn {
+  width: 100%; padding: 15px;
+  background: var(--white); color: var(--black);
+  border: none; border-radius: 12px;
+  font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; letter-spacing: 0.3px;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  margin-top: 8px;
+}
+.action-btn:hover {
+  background: var(--ghost); transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255,255,255,0.1);
+}
+.action-btn:active { transform: translateY(0); }
+.action-btn.secondary {
+  background: var(--graphite); color: var(--white);
+  border: 1px solid var(--mid);
+}
+.action-btn.secondary:hover { background: var(--mid); box-shadow: none; }
+
+/* Result bar */
+.result-bar {
+  display: none;
+  margin-top: 20px;
+  background: var(--graphite); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 22px;
+  align-items: center; gap: 16px;
+}
+.result-bar.show { display: flex; animation: fadeIn 0.3s ease; }
+.result-icon { font-size: 24px; flex-shrink: 0; }
+.result-label { font-size: 13px; color: var(--muted); }
+.result-name { font-size: 14px; font-weight: 600; color: var(--white); }
+.download-btn {
+  margin-left: auto; background: var(--white); color: var(--black);
+  padding: 9px 20px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; border: none;
+  cursor: pointer; text-decoration: none; font-family: inherit;
+  transition: background 0.2s; white-space: nowrap; flex-shrink: 0;
+  display: inline-block;
+}
+.download-btn:hover { background: var(--ghost); }
+
+/* Crop canvas */
+#cropContainer {
+  position: relative; overflow: hidden;
+  border-radius: 12px; background: var(--graphite);
+  margin-bottom: 20px; max-height: 300px;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100px;
+}
+#cropCanvas { max-width: 100%; max-height: 300px; display: block; cursor: crosshair; }
+#cropOverlay {
+  position: absolute; border: 2px solid var(--white);
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.5);
+  display: none; pointer-events: none;
+}
+
+/* Preview */
+.preview-container {
+  display: none;
+  background: var(--graphite); border-radius: 12px;
+  padding: 12px; margin-bottom: 20px; text-align: center;
+}
+.preview-container img { max-width: 100%; max-height: 280px; border-radius: 8px; display: inline-block; }
+
+/* Rotate grid */
+.rotate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+
+/* ── FEATURES ── */
+.features-section { padding: 80px 48px; max-width: 1200px; margin: 0 auto; }
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.feature-card {
+  background: var(--carbon); border: 1px solid var(--border);
+  border-radius: 20px; padding: 32px 28px;
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+  position: relative; overflow: hidden;
+}
+.feature-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--mid), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.feature-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--mid);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+}
+.feature-card:hover::before { opacity: 1; }
+.feature-icon {
+  width: 48px; height: 48px; background: var(--graphite);
+  border-radius: 12px; display: flex; align-items: center;
+  justify-content: center; font-size: 22px; margin-bottom: 20px;
+}
+.feature-title { font-size: 17px; font-weight: 600; color: var(--white); margin-bottom: 10px; }
+.feature-desc { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+/* ── STATS ── */
+.stats-strip {
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 48px;
+  display: grid; grid-template-columns: repeat(4,1fr);
+  max-width: 1200px; margin: 0 auto;
+}
+.stat-item { text-align: center; position: relative; }
+.stat-item:not(:last-child)::after {
+  content: ''; position: absolute; right: 0; top: 20%; bottom: 20%;
+  width: 1px; background: var(--border);
+}
+.stat-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 42px; font-weight: 800; color: var(--white);
+  letter-spacing: -2px;
+}
+.stat-num span { color: var(--silver); }
+.stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 48px; max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+}
+.footer-links { display: flex; gap: 28px; list-style: none; }
+.footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+.footer-links a:hover { color: var(--white); }
+.footer-copy { font-size: 12px; color: var(--mid); }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 32px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--graphite); border: 1px solid var(--mid);
+  border-radius: 12px; padding: 14px 22px;
+  font-size: 14px; color: var(--white);
+  opacity: 0; transition: opacity 0.3s, transform 0.3s;
+  z-index: 200; pointer-events: none; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Scroll reveal ── */
+.reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.reveal.in { opacity: 1; transform: translateY(0); }
+
+/* ── Animations ── */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .features-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  nav { padding: 16px 20px; }
+  .nav-links { display: none; }
+  .section, .features-section { padding: 60px 20px; }
+  .features-grid { grid-template-columns: 1fr; }
+  .stats-strip { grid-template-columns: repeat(2,1fr); padding: 32px 20px; gap: 24px; }
+  .stat-item::after { display: none; }
+  footer { padding: 32px 20px; flex-direction: column; align-items: flex-start; }
+  .format-grid { grid-template-columns: repeat(3,1fr); }
+  .image-card-grid { grid-template-columns: 1fr; }
+  .dim-row { grid-template-columns: 1fr; }
+  .tool-content { padding: 20px 16px; }
+  .panel-header { padding: 16px 20px; }
+  .rotate-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .hero h1 { letter-spacing: -1.5px; }
+  .format-grid { grid-template-columns: repeat(2,1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
 </head>
-
 <body>
-    <div id="cursor"></div>
-    <div id="cursorRing"></div>
-    <nav>
-        <div>Pixel<span>Forge</span></div>
-        <ul>
-            <li><a href="#tools">Tools</a></li>
-            <li><a href="#features">Features</a></li>
-            <li><a href="#stats">Stats</a></li>
-        </ul>
-        <a href="#tools">Try Free</a>
-    </nav>
-    <section>
-        <div><span></span> Professional Image Studio</div>
-        <h1>Transform every<br><em>image, instantly.</em></h1>
-        <p>Resize, convert, compress, crop — precision tools built for designers, developers and creators who demand more.</p>
-        <div>
-            <a href="#tools">Start Editing →</a>
-            <a href="#features">Explore Features</a>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- ==================== NAV ==================== -->
+<nav>
+  <a href="#" class="logo">Pixel<span>Forge</span></a>
+  <ul class="nav-links">
+    <li><a href="#tools">Tools</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#stats">Stats</a></li>
+  </ul>
+  <a href="#tools" class="nav-cta">Try Free</a>
+</nav>
+
+<!-- ==================== HERO ==================== -->
+<section class="hero">
+  <div class="hero-tag"><span class="dot"></span> Professional Image Studio</div>
+  <h1>Transform every<br><em>image, instantly.</em></h1>
+  <p class="hero-sub">Resize, convert, compress, crop — precision tools built for designers, developers and creators who demand more.</p>
+  <div class="hero-actions">
+    <a href="#tools" class="btn-primary">Start Editing →</a>
+    <a href="#features" class="btn-ghost">Explore Features</a>
+  </div>
+  <div class="hero-visual">
+    <div class="image-card-grid">
+      <div class="image-card">
+        <div class="card-thumb">🖼️</div>
+        <div class="card-info">
+          <div class="card-label">Resize</div>
+          <div class="card-val">4096×2160 → 1920×1080</div>
         </div>
-        <div>
-            <div>
-                <div>
-                    <div>🖼️</div>
-                    <div>
-                        <div>Resize</div>
-                        <div>4096×2160 → 1920×1080</div>
-                    </div>
-                    <div>-72%</div>
-                </div>
-                <div>
-                    <div>🔄</div>
-                    <div>
-                        <div>Convert</div>
-                        <div>PNG → WebP</div>
-                    </div>
-                    <div>WebP</div>
-                </div>
-                <div>
-                    <div>⚡</div>
-                    <div>
-                        <div>Compress</div>
-                        <div>8.4MB → 320KB</div>
-                    </div>
-                    <div>-96%</div>
-                </div>
-            </div>
+        <div class="card-badge">-72%</div>
+      </div>
+      <div class="image-card">
+        <div class="card-thumb">🔄</div>
+        <div class="card-info">
+          <div class="card-label">Convert</div>
+          <div class="card-val">PNG → WebP</div>
         </div>
-    </section>
-    <section id="tools">
-        <p>Image Studio</p>
-        <h2>Drop your image.<br>We'll handle the rest.</h2>
-        <div id="uploadZone">
-            <div>📁</div>
-            <div>Drag &amp; drop your image here</div>
-            <div>or <span onclick="document.getElementById('fileInput').click()">browse files</span> from your device</div>
-            <div>
-                <span>JPEG</span><span>PNG</span><span>WebP</span>
-                <span>GIF</span><span>BMP</span><span>TIFF</span>
-                <span>SVG</span><span>AVIF</span>
-            </div>
-            <input type="file" id="fileInput" accept="image/*">
+        <div class="card-badge">WebP</div>
+      </div>
+      <div class="image-card">
+        <div class="card-thumb">⚡</div>
+        <div class="card-info">
+          <div class="card-label">Compress</div>
+          <div class="card-val">8.4MB → 320KB</div>
         </div>
-        <div id="toolsPanel">
-            <div>
-                <div id="fileThumb">🖼️</div>
-                <div>
-                    <div id="fileName">image.png</div>
-                    <div id="fileMeta">0 KB · 0 × 0 px</div>
-                </div>
-                <button onclick="closePanel()">✕</button>
-            </div> ``` <div>
-                <button onclick="switchTab(this,'resize')">↔ Resize</button>
-                <button onclick="switchTab(this,'convert')">🔄 Convert</button>
-                <button onclick="switchTab(this,'compress')">⚡ Compress</button>
-                <button onclick="switchTab(this,'crop')">✂ Crop</button>
-                <button onclick="switchTab(this,'rotate')">🔃 Rotate & Flip</button>
-                <button onclick="switchTab(this,'filter')">🎨 Filters</button>
-            </div>
-            <div>
-                <div id="pane-resize">
-                    <div>
-                        <div>
-                            <label>Width (px)</label>
-                            <input type="number" id="rWidth" placeholder="e.g. 1920" min="1">
-                        </div>
-                        <div>
-                            <label>Height (px)</label>
-                            <input type="number" id="rHeight" placeholder="e.g. 1080" min="1">
-                        </div>
-                    </div>
-                    <div>
-                        <input type="checkbox" id="lockAspect" checked>
-                        <label for="lockAspect">Lock aspect ratio</label>
-                    </div>
-                    <div>
-                        <input type="checkbox" id="upscale">
-                        <label for="upscale">Allow upscaling</label>
-                    </div>
-                    <button onclick="doResize()">Resize Image</button>
-                    <div id="resizeResult">
-                        <div>✅</div>
-                        <div>
-                            <div>Ready to download</div>
-                            <div id="resizeName"></div>
-                        </div>
-                        <a id="resizeLink" download>Download</a>
-                    </div>
-                </div>
-                <div id="pane-convert">
-                    <div>Select output format</div>
-                    <div>
-                        <div onclick="selectFormat(this,'image/jpeg','jpg')"><span>🖼</span>JPEG</div>
-                        <div onclick="selectFormat(this,'image/png','png')"><span>🖼</span>PNG</div>
-                        <div onclick="selectFormat(this,'image/webp','webp')"><span>⚡</span>WebP</div>
-                        <div onclick="selectFormat(this,'image/gif','gif')"><span>🎞</span>GIF</div>
-                        <div onclick="selectFormat(this,'image/bmp','bmp')"><span>🗂</span>BMP</div>
-                        <div onclick="selectFormat(this,'image/tiff','tiff')"><span>🗂</span>TIFF</div>
-                        <div onclick="selectFormat(this,'image/avif','avif')"><span>🚀</span>AVIF</div>
-                        <div onclick="selectFormat(this,'image/ico','ico')"><span>🔲</span>ICO</div>
-                    </div>
-                    <div>
-                        <div>Quality <span id="convQLabel">90</span>%</div>
-                        <input type="range" id="convQ" min="10" max="100" value="90" oninput="document.getElementById('convQLabel').textContent=this.value">
-                    </div>
-                    <button onclick="doConvert()">Convert Image</button>
-                    <div id="convertResult">
-                        <div>✅</div>
-                        <div>
-                            <div>Converted</div>
-                            <div id="convertName"></div>
-                        </div>
-                        <a id="convertLink" download>Download</a>
-                    </div>
-                </div>
-                <div id="pane-compress">
-                    <div>
-                        <div>Quality <span id="cmpQLabel">75</span>%</div>
-                        <input type="range" id="cmpQ" min="5" max="100" value="75" oninput="document.getElementById('cmpQLabel').textContent=this.value">
-                    </div>
-                    <div>
-                        <div>Max Width <span id="cmpWLabel">Original</span></div>
-                        <input type="range" id="cmpW" min="100" max="4000" value="4000" step="100" oninput="document.getElementById('cmpWLabel').textContent=this.value==4000?'Original':this.value+'px'">
-                    </div>
-                    <button onclick="doCompress()">Compress Image</button>
-                    <div id="compressResult">
-                        <div>⚡</div>
-                        <div>
-                            <div>Compressed</div>
-                            <div id="compressName"></div>
-                        </div>
-                        <a id="compressLink" download>Download</a>
-                    </div>
-                </div>
-                <div id="pane-crop">
-                    <div>Click and drag on the image to select crop area</div>
-                    <div id="cropContainer">
-                        <canvas id="cropCanvas"></canvas>
-                        <div id="cropOverlay"></div>
-                    </div>
-                    <div>
-                        <div><label>X</label><input type="number" id="cropX" value="0" min="0"></div>
-                        <div><label>Y</label><input type="number" id="cropY" value="0" min="0"></div>
-                        <div><label>Width</label><input type="number" id="cropW" value="100" min="1"></div>
-                        <div><label>Height</label><input type="number" id="cropH" value="100" min="1"></div>
-                    </div>
-                    <button onclick="doCrop()">Crop Image</button>
-                    <div id="cropResult">
-                        <div>✂</div>
-                        <div>
-                            <div>Cropped</div>
-                            <div id="cropName"></div>
-                        </div>
-                        <a id="cropLink" download>Download</a>
-                    </div>
-                </div>
-                <div id="pane-rotate">
-                    <div>
-                        <button onclick="doRotate(90)">↻ Rotate 90°</button>
-                        <button onclick="doRotate(-90)">↺ Rotate -90°</button>
-                        <button onclick="doRotate(180)">↻ Rotate 180°</button>
-                        <button onclick="doFlip('h')">↔ Flip Horizontal</button>
-                        <button onclick="doFlip('v')" style="background:var(--graphite);color:var(--white);">↕ Flip Vertical</button>
-                    </div>
-                    <div id="previewContainer"><img id="previewImg" src="" alt="Preview"></div>
-                    <div id="rotateResult">
-                        <div>🔃</div>
-                        <div>
-                            <div>Transformed</div>
-                            <div id="rotateName"></div>
-                        </div>
-                        <a id="rotateLink" download>Download</a>
-                    </div>
-                </div>
-                <div id="pane-filter">
-                    <div>
-                        <div>Brightness <span id="brtLabel">100</span>%</div>
-                        <input type="range" id="brt" min="0" max="200" value="100" oninput="document.getElementById('brtLabel').textContent=this.value;applyFilters()">
-                    </div>
-                    <div>
-                        <div>Contrast <span id="cntLabel">100</span>%</div>
-                        <input type="range" id="cnt" min="0" max="200" value="100" oninput="document.getElementById('cntLabel').textContent=this.value;applyFilters()">
-                    </div>
-                    <div>
-                        <div>Saturation <span id="satLabel">100</span>%</div>
-                        <input type="range" id="sat" min="0" max="200" value="100" oninput="document.getElementById('satLabel').textContent=this.value;applyFilters()">
-                    </div>
-                    <div>
-                        <div>Blur <span id="blrLabel">0</span>px</div>
-                        <input type="range" id="blr" min="0" max="20" value="0" oninput="document.getElementById('blrLabel').textContent=this.value;applyFilters()">
-                    </div>
-                    <div>
-                        <div>Grayscale <span id="gryLabel">0</span>%</div>
-                        <input type="range" id="gry" min="0" max="100" value="0" oninput="document.getElementById('gryLabel').textContent=this.value;applyFilters()">
-                    </div>
-                    <div id="previewContainer" id="filterPreviewCont"><img id="previewImg" src="" alt="Preview"></div>
-                    <button onclick="doFilter()">Apply Filters &amp; Save</button>
-                    <div id="filterResult">
-                        <div>🎨</div>
-                        <div>
-                            <div>Filtered</div>
-                            <div id="filterName"></div>
-                        </div>
-                        <a id="filterLink" download>Download</a>
-                    </div>
-                </div>
-            </div>```
-        </div>
-    </section>
-    <section id="features">
-        <p>Why PixelForge</p>
-        <h2>Every tool you need.<br>Nothing you don't.</h2>
-        <div>
-            <div>
-                <div>🔒</div>
-                <div>100% Private</div>
-                <div>Every operation runs entirely in your browser. Your images never leave your device. No uploads to servers, ever.</div>
-            </div>
-            <div>
-                <div>⚡</div>
-                <div>Instant Processing</div>
-                <div>WebAssembly-powered canvas engine processes images in milliseconds — even large RAW files and 4K originals.</div>
-            </div>
-            <div>
-                <div>🎨</div>
-                <div>8 Output Formats</div>
-                <div>Export to JPEG, PNG, WebP, GIF, BMP, TIFF, AVIF, and ICO with full quality control over each format.</div>
-            </div>
-            <div>
-                <div>↔</div>
-                <div>Smart Resizing</div>
-                <div>Resize with locked aspect ratio, custom dimensions, or pixel-perfect scaling. No distortion, ever.</div>
-            </div>
-            <div>
-                <div>✂</div>
-                <div>Precision Crop</div>
-                <div>Interactive drag-to-crop canvas with exact coordinate controls. Get the exact frame you need.</div>
-            </div>
-            <div>
-                <div>🎛</div>
-                <div>Live Filters</div>
-                <div>Real-time brightness, contrast, saturation, blur, and grayscale adjustments with instant live preview.</div>
-            </div>
-        </div>
-    </section>
-    <div id="stats">
-        <div>
-            <div>50<span>M+</span></div>
-            <div>Images processed</div>
-        </div>
-        <div>
-            <div>8</div>
-            <div>Output formats</div>
-        </div>
-        <div>
-            <div>0<span>KB</span></div>
-            <div>Data sent to servers</div>
-        </div>
-        <div>
-            <div>100<span>%</span></div>
-            <div>Free, forever</div>
-        </div>
+        <div class="card-badge">-96%</div>
+      </div>
     </div>
-    <footer>
-        <div>Pixel<span>Forge</span></div>
-        <ul>
-            <li><a href="#">Privacy Policy</a></li>
-            <li><a href="#">Open Source</a></li>
-            <li><a href="#">API Docs</a></li>
-        </ul>
-        <span>© 2026 PixelForge. All rights reserved.</span>
-    </footer>
-    <div id="toast"></div>
-    <script>
-        // ── Cursor ──
-        const cursor = document.getElementById('cursor');
-        const ring = document.getElementById('cursorRing');
-        let mx=0,my=0,rx=0,ry=0;
-        document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cursor.style.left=mx+'px'; cursor.style.top=my+'px'; });
-        (function animRing(){
-          rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12;
-          ring.style.left=rx+'px'; ring.style.top=ry+'px';
-          requestAnimationFrame(animRing);
-        })();
-        document.querySelectorAll('a,button,.format-btn,.feature-card,.upload-zone').forEach(el=>{
-          el.addEventListener('mouseenter',()=>{cursor.style.transform='translate(-50%,-50%) scale(1.5)';ring.style.transform='translate(-50%,-50%) scale(1.4)';});
-          el.addEventListener('mouseleave',()=>{cursor.style.transform='translate(-50%,-50%) scale(1)';ring.style.transform='translate(-50%,-50%) scale(1)';});
-        });
-        
-        // ── Scroll reveal ──
-        const obs = new IntersectionObserver(entries => {
-          entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); });
-        }, { threshold: 0.15 });
-        document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
-        
-        // ── Toast ──
-        function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }
-        
-        // ── State ──
-        let currentImage=null, imgW=0, imgH=0, imgName='image', selectedFmt='image/jpeg', selectedExt='jpg';
-        
-        // ── Upload ──
-        const zone = document.getElementById('uploadZone');
-        const fileInput = document.getElementById('fileInput');
-        
-        zone.addEventListener('click', ()=>fileInput.click());
-        zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('drag-over'); });
-        zone.addEventListener('dragleave', ()=>zone.classList.remove('drag-over'));
-        zone.addEventListener('drop', e=>{ e.preventDefault(); zone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
-        fileInput.addEventListener('change', ()=>handleFile(fileInput.files[0]));
-        
-        function handleFile(file){
-          if(!file||!file.type.startsWith('image/')) return toast('⚠ Please upload a valid image file.');
-          const reader = new FileReader();
-          reader.onload = e => {
-            const img = new Image();
-            img.onload = ()=>{
-              imgW=img.width; imgH=img.height;
-              document.getElementById('rWidth').value=imgW;
-              document.getElementById('rHeight').value=imgH;
-              document.getElementById('cropW').value=imgW;
-              document.getElementById('cropH').value=imgH;
-              currentImage=img;
-              imgName=file.name.replace(/\.[^.]+$/,'');
-              document.getElementById('fileName').textContent=file.name;
-              document.getElementById('fileMeta').textContent=formatBytes(file.size)+' · '+imgW+' × '+imgH+' px';
-              // Thumb
-              const th=document.getElementById('fileThumb');
-              th.innerHTML='<img src="'+e.target.result+'" alt="">';
-              document.getElementById('toolsPanel').classList.add('visible');
-              document.getElementById('toolsPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
-              initCropCanvas();
-              initFilterPreview();
-            };
-            img.src=e.target.result;
-          };
-          reader.readAsDataURL(file);
-        }
-        function formatBytes(b){ if(b<1024)return b+' B'; if(b<1048576)return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(2)+' MB'; }
-        
-        function closePanel(){
-          document.getElementById('toolsPanel').classList.remove('visible');
-          currentImage=null;
-          fileInput.value='';
-        }
-        
-        // ── Tabs ──
-        function switchTab(el,id){
-          document.querySelectorAll('.tool-tab').forEach(t=>t.classList.remove('active'));
-          document.querySelectorAll('.tool-pane').forEach(p=>p.classList.remove('active'));
-          el.classList.add('active');
-          document.getElementById('pane-'+id).classList.add('active');
-          if(id==='crop') initCropCanvas();
-          if(id==='filter') initFilterPreview();
-        }
-        
-        // ── Canvas helper ──
-        function getCanvas(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
-        
-        // ── Resize ──
-        const lockAspect=document.getElementById('lockAspect');
-        document.getElementById('rWidth').addEventListener('input', function(){
-          if(lockAspect.checked && imgH && imgW) document.getElementById('rHeight').value=Math.round(this.value*(imgH/imgW));
-        });
-        document.getElementById('rHeight').addEventListener('input', function(){
-          if(lockAspect.checked && imgH && imgW) document.getElementById('rWidth').value=Math.round(this.value*(imgW/imgH));
-        });
-        
-        function doResize(){
-          if(!currentImage) return;
-          let w=parseInt(document.getElementById('rWidth').value)||imgW;
-          let h=parseInt(document.getElementById('rHeight').value)||imgH;
-          if(!document.getElementById('upscale').checked){ w=Math.min(w,imgW); h=Math.min(h,imgH); }
-          const c=getCanvas(w,h); c.getContext('2d').drawImage(currentImage,0,0,w,h);
-          const url=c.toDataURL('image/png');
-          const link=document.getElementById('resizeLink'); link.href=url; link.download=imgName+'_'+w+'x'+h+'.png';
-          document.getElementById('resizeName').textContent=imgName+'_'+w+'x'+h+'.png · '+w+'×'+h+' px';
-          document.getElementById('resizeResult').classList.add('show');
-          toast('✅ Resized to '+w+'×'+h);
-        }
-        
-        // ── Convert ──
-        function selectFormat(el,type,ext){
-          document.querySelectorAll('.format-btn').forEach(b=>b.classList.remove('selected'));
-          el.classList.add('selected'); selectedFmt=type; selectedExt=ext;
-        }
-        function doConvert(){
-          if(!currentImage) return;
-          if(!selectedFmt){ toast('⚠ Select a format first'); return; }
-          const q=parseInt(document.getElementById('convQ').value)/100;
-          const c=getCanvas(imgW,imgH); c.getContext('2d').drawImage(currentImage,0,0);
-          // For formats canvas doesn't support natively, fall back to webp/jpeg
-          const safeFmt = ['image/jpeg','image/png','image/webp','image/gif','image/bmp'].includes(selectedFmt) ? selectedFmt : 'image/png';
-          const url=c.toDataURL(safeFmt,q);
-          const link=document.getElementById('convertLink'); link.href=url; link.download=imgName+'.'+selectedExt;
-          document.getElementById('convertName').textContent=imgName+'.'+selectedExt+' ('+selectedExt.toUpperCase()+')';
-          document.getElementById('convertResult').classList.add('show');
-          toast('✅ Converted to '+selectedExt.toUpperCase());
-        }
-        
-        // ── Compress ──
-        function doCompress(){
-          if(!currentImage) return;
-          const q=parseInt(document.getElementById('cmpQ').value)/100;
-          const maxW=parseInt(document.getElementById('cmpW').value);
-          let w=imgW, h=imgH;
-          if(maxW<imgW){ w=maxW; h=Math.round(imgH*(maxW/imgW)); }
-          const c=getCanvas(w,h); c.getContext('2d').drawImage(currentImage,0,0,w,h);
-          const url=c.toDataURL('image/jpeg',q);
-          // Estimate size
-          const bytes=Math.round((url.length-22)*0.75);
-          const link=document.getElementById('compressLink'); link.href=url; link.download=imgName+'_compressed.jpg';
-          document.getElementById('compressName').textContent=imgName+'_compressed.jpg · ~'+formatBytes(bytes);
-          document.getElementById('compressResult').classList.add('show');
-          toast('⚡ Compressed to ~'+formatBytes(bytes));
-        }
-        
-        // ── Crop ──
-        let cropX=0,cropY=0,cropW=0,cropH=0,isCropping=false,startX=0,startY=0,scaleX=1,scaleY=1;
-        function initCropCanvas(){
-          if(!currentImage) return;
-          const container=document.getElementById('cropContainer');
-          const canvas=document.getElementById('cropCanvas');
-          const maxW=container.clientWidth||640;
-          const scale=Math.min(maxW/imgW,300/imgH,1);
-          canvas.width=Math.round(imgW*scale); canvas.height=Math.round(imgH*scale);
-          scaleX=imgW/canvas.width; scaleY=imgH/canvas.height;
-          canvas.getContext('2d').drawImage(currentImage,0,0,canvas.width,canvas.height);
-        
-          canvas.onmousedown=e=>{ isCropping=true; const r=canvas.getBoundingClientRect(); startX=e.clientX-r.left; startY=e.clientY-r.top; };
-          canvas.onmousemove=e=>{
-            if(!isCropping) return;
-            const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; const y=e.clientY-r.top;
-            cropX=Math.round(Math.min(startX,x)*scaleX); cropY=Math.round(Math.min(startY,y)*scaleY);
-            cropW=Math.round(Math.abs(x-startX)*scaleX); cropH=Math.round(Math.abs(y-startY)*scaleY);
-            document.getElementById('cropX').value=cropX; document.getElementById('cropY').value=cropY;
-            document.getElementById('cropW').value=cropW; document.getElementById('cropH').value=cropH;
-            const ov=document.getElementById('cropOverlay');
-            ov.style.display='block';
-            ov.style.left=Math.min(startX,x)+'px'; ov.style.top=Math.min(startY,y)+'px';
-            ov.style.width=Math.abs(x-startX)+'px'; ov.style.height=Math.abs(y-startY)+'px';
-          };
-          canvas.onmouseup=()=>{ isCropping=false; };
-        }
-        function doCrop(){
-          if(!currentImage) return;
-          const x=parseInt(document.getElementById('cropX').value)||0;
-          const y=parseInt(document.getElementById('cropY').value)||0;
-          const w=parseInt(document.getElementById('cropW').value)||imgW;
-          const h=parseInt(document.getElementById('cropH').value)||imgH;
-          const c=getCanvas(w,h); c.getContext('2d').drawImage(currentImage,x,y,w,h,0,0,w,h);
-          const url=c.toDataURL('image/png');
-          const link=document.getElementById('cropLink'); link.href=url; link.download=imgName+'_cropped.png';
-          document.getElementById('cropName').textContent=imgName+'_cropped.png · '+w+'×'+h+' px';
-          document.getElementById('cropResult').classList.add('show');
-          toast('✂ Cropped to '+w+'×'+h);
-        }
-        
-        // ── Rotate/Flip ──
-        let rotatedImage=null;
-        function doRotate(deg){
-          const src = rotatedImage||currentImage; if(!src) return;
-          const rad=deg*Math.PI/180;
-          const ow=src.width||src.naturalWidth||imgW, oh=src.height||src.naturalHeight||imgH;
-          const sw=Math.abs(Math.round(ow*Math.cos(rad)+oh*Math.sin(rad)));
-          const sh=Math.abs(Math.round(oh*Math.cos(rad)+ow*Math.sin(rad)));
-          const c=getCanvas(sw,sh); const ctx=c.getContext('2d');
-          ctx.translate(sw/2,sh/2); ctx.rotate(rad); ctx.drawImage(src,-ow/2,-oh/2);
-          showRotResult(c);
-        }
-        function doFlip(dir){
-          const src=rotatedImage||currentImage; if(!src) return;
-          const ow=src.width||imgW, oh=src.height||imgH;
-          const c=getCanvas(ow,oh); const ctx=c.getContext('2d');
-          if(dir==='h'){ ctx.translate(ow,0); ctx.scale(-1,1); }
-          else { ctx.translate(0,oh); ctx.scale(1,-1); }
-          ctx.drawImage(src,0,0);
-          showRotResult(c);
-        }
-        function showRotResult(c){
-          const url=c.toDataURL('image/png');
-          const img=new Image(); img.src=url; rotatedImage=img;
-          const pc=document.getElementById('pane-rotate').querySelector('#previewContainer')||document.createElement('div');
-          document.getElementById('previewImg').src=url;
-          document.getElementById('previewContainer').style.display='block';
-          const link=document.getElementById('rotateLink'); link.href=url; link.download=imgName+'_rotated.png';
-          document.getElementById('rotateName').textContent=imgName+'_rotated.png';
-          document.getElementById('rotateResult').classList.add('show');
-          toast('🔃 Transform applied');
-        }
-        
-        // ── Filters ──
-        let filterCanvas=null;
-        function initFilterPreview(){
-          if(!currentImage) return;
-          filterCanvas=getCanvas(imgW,imgH);
-          filterCanvas.getContext('2d').drawImage(currentImage,0,0);
-          applyFilters();
-        }
-        function applyFilters(){
-          if(!currentImage) return;
-          const c=getCanvas(imgW,imgH); const ctx=c.getContext('2d');
-          const brt=document.getElementById('brt').value;
-          const cnt=document.getElementById('cnt').value;
-          const sat=document.getElementById('sat').value;
-          const blr=document.getElementById('blr').value;
-          const gry=document.getElementById('gry').value;
-          ctx.filter=`brightness(${brt}%) contrast(${cnt}%) saturate(${sat}%) blur(${blr}px) grayscale(${gry}%)`;
-          ctx.drawImage(currentImage,0,0);
-          filterCanvas=c;
-          document.getElementById('previewImg').src=c.toDataURL();
-          document.getElementById('previewContainer').style.display='block';
-        }
-        function doFilter(){
-          if(!filterCanvas) return;
-          const url=filterCanvas.toDataURL('image/png');
-          const link=document.getElementById('filterLink'); link.href=url; link.download=imgName+'_filtered.png';
-          document.getElementById('filterName').textContent=imgName+'_filtered.png';
-          document.getElementById('filterResult').classList.add('show');
-          toast('🎨 Filters applied');
-        }
-    </script>
+  </div>
+</section>
 
-<div style="bottom: 10px; right: 10px; position: absolute;"><a href="https://signatureforemail.com/?utm_source=wth_free_link&utm_medium=external" target="_blank" rel="noopener" style="font-size:11px; color: #c0c0c0;">Mobile-Friendly Email Signature Generator</a></div>
+<!-- ==================== TOOLS ==================== -->
+<section class="section" id="tools">
+  <p class="section-eyebrow reveal">Image Studio</p>
+  <h2 class="section-title reveal">Drop your image.<br>We'll handle the rest.</h2>
+
+  <div class="upload-zone reveal" id="uploadZone">
+    <div class="upload-icon">📁</div>
+    <div class="upload-title">Drag &amp; drop your image here</div>
+    <div class="upload-sub">or <span onclick="document.getElementById('fileInput').click()">browse files</span> from your device</div>
+    <div class="upload-formats">
+      <span class="fmt-pill">JPEG</span>
+      <span class="fmt-pill">PNG</span>
+      <span class="fmt-pill">WebP</span>
+      <span class="fmt-pill">GIF</span>
+      <span class="fmt-pill">BMP</span>
+      <span class="fmt-pill">TIFF</span>
+      <span class="fmt-pill">SVG</span>
+      <span class="fmt-pill">AVIF</span>
+    </div>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+
+  <!-- ---- TOOLS PANEL ---- -->
+  <div class="tools-panel" id="toolsPanel">
+    <div class="panel-header">
+      <div class="file-thumb" id="fileThumb">🖼️</div>
+      <div>
+        <div class="file-meta-name" id="fileName">image.png</div>
+        <div class="file-meta-info" id="fileMeta">0 KB · 0 × 0 px</div>
+      </div>
+      <button class="panel-close" onclick="closePanel()">✕</button>
+    </div>
+
+    <div class="tools-tabs">
+      <button class="tool-tab active" onclick="switchTab(this,'resize')">↔ Resize</button>
+      <button class="tool-tab" onclick="switchTab(this,'convert')">🔄 Convert</button>
+      <button class="tool-tab" onclick="switchTab(this,'compress')">⚡ Compress</button>
+      <button class="tool-tab" onclick="switchTab(this,'crop')">✂ Crop</button>
+      <button class="tool-tab" onclick="switchTab(this,'rotate')">🔃 Rotate &amp; Flip</button>
+      <button class="tool-tab" onclick="switchTab(this,'filter')">🎨 Filters</button>
+    </div>
+
+    <div class="tool-content">
+
+      <!-- RESIZE -->
+      <div class="tool-pane active" id="pane-resize">
+        <div class="dim-row">
+          <div class="input-group">
+            <label>Width (px)</label>
+            <input type="number" id="rWidth" placeholder="e.g. 1920" min="1">
+          </div>
+          <div class="input-group">
+            <label>Height (px)</label>
+            <input type="number" id="rHeight" placeholder="e.g. 1080" min="1">
+          </div>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="lockAspect" checked>
+          <label for="lockAspect">Lock aspect ratio</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="upscale">
+          <label for="upscale">Allow upscaling</label>
+        </div>
+        <button class="action-btn" onclick="doResize()">Resize Image</button>
+        <div class="result-bar" id="resizeResult">
+          <div class="result-icon">✅</div>
+          <div>
+            <div class="result-label">Ready to download</div>
+            <div class="result-name" id="resizeName"></div>
+          </div>
+          <a class="download-btn" id="resizeLink" download>Download</a>
+        </div>
+      </div>
+
+      <!-- CONVERT -->
+      <div class="tool-pane" id="pane-convert">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Select output format</div>
+        <div class="format-grid">
+          <div class="format-btn" onclick="selectFormat(this,'image/jpeg','jpg')"><span class="fmt-ext">🖼</span>JPEG</div>
+          <div class="format-btn" onclick="selectFormat(this,'image/png','png')"><span class="fmt-ext">🖼</span>PNG</div>
+          <div class="format-btn selected" onclick="selectFormat(this,'image/webp','webp')"><span class="fmt-ext">⚡</span>WebP</div>
+          <div class="format-btn" onclick="selectFormat(this,'image/gif','gif')"><span class="fmt-ext">🎞</span>GIF</div>
+          <div class="format-btn" onclick="selectFormat(this,'image/bmp','bmp')"><span class="fmt-ext">🗂</span>BMP</div>
+          <div class="format-btn" onclick="selectFormat(this,'image/x-icon','ico')"><span class="fmt-ext">🔲</span>ICO</div>
+        </div>
+        <div class="control-row">
+          <div class="control-label">Quality <span id="convQLabel">90</span>%</div>
+          <input type="range" id="convQ" min="10" max="100" value="90"
+                 oninput="document.getElementById('convQLabel').textContent=this.value">
+        </div>
+        <button class="action-btn" onclick="doConvert()">Convert Image</button>
+        <div class="result-bar" id="convertResult">
+          <div class="result-icon">✅</div>
+          <div>
+            <div class="result-label">Converted</div>
+            <div class="result-name" id="convertName"></div>
+          </div>
+          <a class="download-btn" id="convertLink" download>Download</a>
+        </div>
+      </div>
+
+      <!-- COMPRESS -->
+      <div class="tool-pane" id="pane-compress">
+        <div class="control-row">
+          <div class="control-label">Quality <span id="cmpQLabel">75</span>%</div>
+          <input type="range" id="cmpQ" min="5" max="100" value="75"
+                 oninput="document.getElementById('cmpQLabel').textContent=this.value">
+        </div>
+        <div class="control-row">
+          <div class="control-label">Max Width <span id="cmpWLabel">Original</span></div>
+          <input type="range" id="cmpW" min="100" max="4000" value="4000" step="100"
+                 oninput="document.getElementById('cmpWLabel').textContent=this.value==4000?'Original':this.value+'px'">
+        </div>
+        <button class="action-btn" onclick="doCompress()">Compress Image</button>
+        <div class="result-bar" id="compressResult">
+          <div class="result-icon">⚡</div>
+          <div>
+            <div class="result-label">Compressed</div>
+            <div class="result-name" id="compressName"></div>
+          </div>
+          <a class="download-btn" id="compressLink" download>Download</a>
+        </div>
+      </div>
+
+      <!-- CROP -->
+      <div class="tool-pane" id="pane-crop">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Click and drag on the image to select crop area</div>
+        <div id="cropContainer">
+          <canvas id="cropCanvas"></canvas>
+          <div id="cropOverlay"></div>
+        </div>
+        <div class="dim-row">
+          <div class="input-group"><label>X</label><input type="number" id="cropX" value="0" min="0"></div>
+          <div class="input-group"><label>Y</label><input type="number" id="cropY" value="0" min="0"></div>
+          <div class="input-group"><label>Width</label><input type="number" id="cropW" value="100" min="1"></div>
+          <div class="input-group"><label>Height</label><input type="number" id="cropH" value="100" min="1"></div>
+        </div>
+        <button class="action-btn" onclick="doCrop()">Crop Image</button>
+        <div class="result-bar" id="cropResult">
+          <div class="result-icon">✂</div>
+          <div>
+            <div class="result-label">Cropped</div>
+            <div class="result-name" id="cropName"></div>
+          </div>
+          <a class="download-btn" id="cropLink" download>Download</a>
+        </div>
+      </div>
+
+      <!-- ROTATE & FLIP -->
+      <div class="tool-pane" id="pane-rotate">
+        <div class="rotate-grid">
+          <button class="action-btn secondary" onclick="doRotate(90)">↻ Rotate 90°</button>
+          <button class="action-btn secondary" onclick="doRotate(-90)">↺ Rotate -90°</button>
+          <button class="action-btn secondary" onclick="doRotate(180)">↻ Rotate 180°</button>
+          <button class="action-btn secondary" onclick="doFlip('h')">↔ Flip Horizontal</button>
+          <button class="action-btn secondary" onclick="doFlip('v')" style="grid-column:span 2">↕ Flip Vertical</button>
+        </div>
+        <div class="preview-container" id="rotatePreview">
+          <img id="rotatePreviewImg" src="" alt="Preview">
+        </div>
+        <div class="result-bar" id="rotateResult">
+          <div class="result-icon">🔃</div>
+          <div>
+            <div class="result-label">Transformed</div>
+            <div class="result-name" id="rotateName"></div>
+          </div>
+          <a class="download-btn" id="rotateLink" download>Download</a>
+        </div>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="tool-pane" id="pane-filter">
+        <div class="control-row">
+          <div class="control-label">Brightness <span id="brtLabel">100</span>%</div>
+          <input type="range" id="brt" min="0" max="200" value="100"
+                 oninput="document.getElementById('brtLabel').textContent=this.value;applyFilters()">
+        </div>
+        <div class="control-row">
+          <div class="control-label">Contrast <span id="cntLabel">100</span>%</div>
+          <input type="range" id="cnt" min="0" max="200" value="100"
+                 oninput="document.getElementById('cntLabel').textContent=this.value;applyFilters()">
+        </div>
+        <div class="control-row">
+          <div class="control-label">Saturation <span id="satLabel">100</span>%</div>
+          <input type="range" id="sat" min="0" max="200" value="100"
+                 oninput="document.getElementById('satLabel').textContent=this.value;applyFilters()">
+        </div>
+        <div class="control-row">
+          <div class="control-label">Blur <span id="blrLabel">0</span>px</div>
+          <input type="range" id="blr" min="0" max="20" value="0"
+                 oninput="document.getElementById('blrLabel').textContent=this.value;applyFilters()">
+        </div>
+        <div class="control-row">
+          <div class="control-label">Grayscale <span id="gryLabel">0</span>%</div>
+          <input type="range" id="gry" min="0" max="100" value="0"
+                 oninput="document.getElementById('gryLabel').textContent=this.value;applyFilters()">
+        </div>
+        <div class="preview-container" id="filterPreview">
+          <img id="filterPreviewImg" src="" alt="Preview">
+        </div>
+        <button class="action-btn" onclick="doFilter()">Apply Filters &amp; Save</button>
+        <div class="result-bar" id="filterResult">
+          <div class="result-icon">🎨</div>
+          <div>
+            <div class="result-label">Filtered</div>
+            <div class="result-name" id="filterName"></div>
+          </div>
+          <a class="download-btn" id="filterLink" download>Download</a>
+        </div>
+      </div>
+
+    </div><!-- /tool-content -->
+  </div><!-- /tools-panel -->
+</section>
+
+<!-- ==================== FEATURES ==================== -->
+<section class="features-section" id="features">
+  <p class="section-eyebrow reveal">Why PixelForge</p>
+  <h2 class="section-title reveal">Every tool you need.<br>Nothing you don't.</h2>
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-icon">🔒</div>
+      <div class="feature-title">100% Private</div>
+      <div class="feature-desc">Every operation runs entirely in your browser. Your images never leave your device. No uploads to servers, ever.</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Instant Processing</div>
+      <div class="feature-desc">Canvas-powered engine processes images in milliseconds — even large files and 4K originals.</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🎨</div>
+      <div class="feature-title">6 Output Formats</div>
+      <div class="feature-desc">Export to JPEG, PNG, WebP, GIF, BMP, and ICO with full quality control over each format.</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">↔</div>
+      <div class="feature-title">Smart Resizing</div>
+      <div class="feature-desc">Resize with locked aspect ratio, custom dimensions, or pixel-perfect scaling. No distortion, ever.</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">✂</div>
+      <div class="feature-title">Precision Crop</div>
+      <div class="feature-desc">Interactive drag-to-crop canvas with exact coordinate controls. Get the exact frame you need.</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🎛</div>
+      <div class="feature-title">Live Filters</div>
+      <div class="feature-desc">Real-time brightness, contrast, saturation, blur, and grayscale adjustments with instant live preview.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== STATS ==================== -->
+<div class="stats-strip reveal" id="stats">
+  <div class="stat-item">
+    <div class="stat-num">50<span>M+</span></div>
+    <div class="stat-label">Images processed</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">6</div>
+    <div class="stat-label">Output formats</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">0<span>KB</span></div>
+    <div class="stat-label">Data sent to servers</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">100<span>%</span></div>
+    <div class="stat-label">Free, forever</div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<footer>
+  <div class="logo">Pixel<span>Forge</span></div>
+  <ul class="footer-links">
+    <li><a href="#">Privacy Policy</a></li>
+    <li><a href="#">Open Source</a></li>
+    <li><a href="#">API Docs</a></li>
+  </ul>
+  <span class="footer-copy">© 2026 PixelForge. All rights reserved.</span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<!-- ================================================================
+     JAVASCRIPT
+     ================================================================ -->
+<script>
+// ── Custom cursor (desktop only) ──
+const cursor = document.getElementById('cursor');
+const ring   = document.getElementById('cursorRing');
+let mx=0, my=0, rx=0, ry=0;
+
+if (window.matchMedia('(hover: hover)').matches) {
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx + 'px';
+    cursor.style.top  = my + 'px';
+  });
+  (function animRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top  = ry + 'px';
+    requestAnimationFrame(animRing);
+  })();
+  document.querySelectorAll('a, button, .format-btn, .feature-card, .upload-zone').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.transform = 'translate(-50%,-50%) scale(1.5)';
+      ring.style.transform   = 'translate(-50%,-50%) scale(1.4)';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.transform = 'translate(-50%,-50%) scale(1)';
+      ring.style.transform   = 'translate(-50%,-50%) scale(1)';
+    });
+  });
+}
+
+// ── Scroll reveal ──
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── State ──
+let currentImage = null;
+let imgW = 0, imgH = 0, imgName = 'image';
+let selectedFmt = 'image/webp', selectedExt = 'webp';
+let rotatedImage = null;
+let filterCanvas = null;
+
+// ── Upload ──
+const zone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+zone.addEventListener('click', () => fileInput.click());
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', ()  => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    return showToast('⚠ Please upload a valid image file.');
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      imgW = img.naturalWidth;
+      imgH = img.naturalHeight;
+      currentImage = img;
+      rotatedImage = null;
+      filterCanvas = null;
+
+      // Prefill fields
+      document.getElementById('rWidth').value  = imgW;
+      document.getElementById('rHeight').value = imgH;
+      document.getElementById('cropW').value   = imgW;
+      document.getElementById('cropH').value   = imgH;
+
+      imgName = file.name.replace(/\.[^.]+$/, '');
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileMeta').textContent =
+        formatBytes(file.size) + ' · ' + imgW + ' × ' + imgH + ' px';
+
+      // Thumbnail
+      const th = document.getElementById('fileThumb');
+      th.innerHTML = '<img src="' + e.target.result + '" alt="">';
+
+      // Hide all previous results
+      document.querySelectorAll('.result-bar').forEach(r => r.classList.remove('show'));
+
+      // Show panel
+      const panel = document.getElementById('toolsPanel');
+      panel.classList.add('visible');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      // Init crop & filter if already on those tabs
+      initCropCanvas();
+      initFilterPreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function formatBytes(b) {
+  if (b < 1024)     return b + ' B';
+  if (b < 1048576)  return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(2) + ' MB';
+}
+
+function closePanel() {
+  document.getElementById('toolsPanel').classList.remove('visible');
+  currentImage = null;
+  rotatedImage = null;
+  filterCanvas = null;
+  fileInput.value = '';
+}
+
+// ── Tabs ──
+function switchTab(el, id) {
+  document.querySelectorAll('.tool-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tool-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pane-' + id).classList.add('active');
+  if (id === 'crop')   initCropCanvas();
+  if (id === 'filter') initFilterPreview();
+}
+
+// ── Canvas helper ──
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  return c;
+}
+
+// ── Resize ──
+document.getElementById('rWidth').addEventListener('input', function () {
+  if (document.getElementById('lockAspect').checked && imgW)
+    document.getElementById('rHeight').value = Math.round(this.value * (imgH / imgW));
+});
+document.getElementById('rHeight').addEventListener('input', function () {
+  if (document.getElementById('lockAspect').checked && imgH)
+    document.getElementById('rWidth').value = Math.round(this.value * (imgW / imgH));
+});
+
+function doResize() {
+  if (!currentImage) return showToast('⚠ Upload an image first.');
+  let w = parseInt(document.getElementById('rWidth').value)  || imgW;
+  let h = parseInt(document.getElementById('rHeight').value) || imgH;
+  if (!document.getElementById('upscale').checked) { w = Math.min(w, imgW); h = Math.min(h, imgH); }
+  const c = makeCanvas(w, h);
+  c.getContext('2d').drawImage(currentImage, 0, 0, w, h);
+  const url = c.toDataURL('image/png');
+  const link = document.getElementById('resizeLink');
+  link.href = url;
+  link.download = imgName + '_' + w + 'x' + h + '.png';
+  document.getElementById('resizeName').textContent = imgName + '_' + w + 'x' + h + '.png · ' + w + '×' + h + ' px';
+  document.getElementById('resizeResult').classList.add('show');
+  showToast('✅ Resized to ' + w + '×' + h);
+}
+
+// ── Convert ──
+function selectFormat(el, type, ext) {
+  document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedFmt = type;
+  selectedExt = ext;
+}
+
+function doConvert() {
+  if (!currentImage) return showToast('⚠ Upload an image first.');
+  const q = parseInt(document.getElementById('convQ').value) / 100;
+  const c = makeCanvas(imgW, imgH);
+  c.getContext('2d').drawImage(currentImage, 0, 0);
+  // Canvas supports jpeg, png, webp natively; fall back to png for others
+  const safeFmt = ['image/jpeg','image/png','image/webp'].includes(selectedFmt) ? selectedFmt : 'image/png';
+  const url = c.toDataURL(safeFmt, q);
+  const link = document.getElementById('convertLink');
+  link.href = url;
+  link.download = imgName + '.' + selectedExt;
+  document.getElementById('convertName').textContent = imgName + '.' + selectedExt + ' (' + selectedExt.toUpperCase() + ')';
+  document.getElementById('convertResult').classList.add('show');
+  showToast('✅ Converted to ' + selectedExt.toUpperCase());
+}
+
+// ── Compress ──
+function doCompress() {
+  if (!currentImage) return showToast('⚠ Upload an image first.');
+  const q = parseInt(document.getElementById('cmpQ').value) / 100;
+  const maxW = parseInt(document.getElementById('cmpW').value);
+  let w = imgW, h = imgH;
+  if (maxW < imgW) { w = maxW; h = Math.round(imgH * (maxW / imgW)); }
+  const c = makeCanvas(w, h);
+  c.getContext('2d').drawImage(currentImage, 0, 0, w, h);
+  const url = c.toDataURL('image/jpeg', q);
+  const bytes = Math.round((url.length - 22) * 0.75);
+  const link = document.getElementById('compressLink');
+  link.href = url;
+  link.download = imgName + '_compressed.jpg';
+  document.getElementById('compressName').textContent = imgName + '_compressed.jpg · ~' + formatBytes(bytes);
+  document.getElementById('compressResult').classList.add('show');
+  showToast('⚡ Compressed to ~' + formatBytes(bytes));
+}
+
+// ── Crop ──
+let cropX=0, cropY=0, cropW2=0, cropH2=0;
+let isCropping=false, startX=0, startY=0, scaleX=1, scaleY=1;
+
+function initCropCanvas() {
+  if (!currentImage) return;
+  const container = document.getElementById('cropContainer');
+  const canvas    = document.getElementById('cropCanvas');
+  const maxW = container.clientWidth || 640;
+  const scale = Math.min(1, maxW / imgW, 300 / imgH);
+  canvas.width  = Math.round(imgW * scale);
+  canvas.height = Math.round(imgH * scale);
+  scaleX = imgW / canvas.width;
+  scaleY = imgH / canvas.height;
+  canvas.getContext('2d').drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+
+  canvas.onmousedown = e => {
+    isCropping = true;
+    const r = canvas.getBoundingClientRect();
+    startX = e.clientX - r.left;
+    startY = e.clientY - r.top;
+  };
+  canvas.onmousemove = e => {
+    if (!isCropping) return;
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    cropX = Math.round(Math.min(startX, x) * scaleX);
+    cropY = Math.round(Math.min(startY, y) * scaleY);
+    cropW2 = Math.round(Math.abs(x - startX) * scaleX);
+    cropH2 = Math.round(Math.abs(y - startY) * scaleY);
+    document.getElementById('cropX').value = cropX;
+    document.getElementById('cropY').value = cropY;
+    document.getElementById('cropW').value = cropW2;
+    document.getElementById('cropH').value = cropH2;
+    const ov = document.getElementById('cropOverlay');
+    ov.style.display = 'block';
+    ov.style.left   = Math.min(startX, x) + 'px';
+    ov.style.top    = Math.min(startY, y) + 'px';
+    ov.style.width  = Math.abs(x - startX) + 'px';
+    ov.style.height = Math.abs(y - startY) + 'px';
+  };
+  canvas.onmouseup = () => { isCropping = false; };
+
+  // Touch support for mobile
+  canvas.ontouchstart = e => {
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches[0];
+    isCropping = true;
+    startX = t.clientX - r.left;
+    startY = t.clientY - r.top;
+  };
+  canvas.ontouchmove = e => {
+    e.preventDefault();
+    if (!isCropping) return;
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches[0];
+    const x = t.clientX - r.left;
+    const y = t.clientY - r.top;
+    cropX = Math.round(Math.min(startX, x) * scaleX);
+    cropY = Math.round(Math.min(startY, y) * scaleY);
+    cropW2 = Math.round(Math.abs(x - startX) * scaleX);
+    cropH2 = Math.round(Math.abs(y - startY) * scaleY);
+    document.getElementById('cropX').value = cropX;
+    document.getElementById('cropY').value = cropY;
+    document.getElementById('cropW').value = cropW2;
+    document.getElementById('cropH').value = cropH2;
+  };
+  canvas.ontouchend = () => { isCropping = false; };
+}
+
+function doCrop() {
+  if (!currentImage) return showToast('⚠ Upload an image first.');
+  const x = parseInt(document.getElementById('cropX').value) || 0;
+  const y = parseInt(document.getElementById('cropY').value) || 0;
+  const w = parseInt(document.getElementById('cropW').value) || imgW;
+  const h = parseInt(document.getElementById('cropH').value) || imgH;
+  const c = makeCanvas(w, h);
+  c.getContext('2d').drawImage(currentImage, x, y, w, h, 0, 0, w, h);
+  const url = c.toDataURL('image/png');
+  const link = document.getElementById('cropLink');
+  link.href = url;
+  link.download = imgName + '_cropped.png';
+  document.getElementById('cropName').textContent = imgName + '_cropped.png · ' + w + '×' + h + ' px';
+  document.getElementById('cropResult').classList.add('show');
+  showToast('✂ Cropped to ' + w + '×' + h);
+}
+
+// ── Rotate / Flip ──
+function getSourceImage() {
+  return rotatedImage || currentImage;
+}
+
+function doRotate(deg) {
+  const src = getSourceImage();
+  if (!src) return showToast('⚠ Upload an image first.');
+  const rad = deg * Math.PI / 180;
+  const ow  = src.naturalWidth  || src.width  || imgW;
+  const oh  = src.naturalHeight || src.height || imgH;
+  const sw  = Math.abs(Math.round(ow * Math.cos(rad) + oh * Math.abs(Math.sin(rad))));
+  const sh  = Math.abs(Math.round(oh * Math.cos(rad) + ow * Math.abs(Math.sin(rad))));
+  const c   = makeCanvas(sw, sh);
+  const ctx = c.getContext('2d');
+  ctx.translate(sw / 2, sh / 2);
+  ctx.rotate(rad);
+  ctx.drawImage(src, -ow / 2, -oh / 2, ow, oh);
+  showRotateResult(c);
+}
+
+function doFlip(dir) {
+  const src = getSourceImage();
+  if (!src) return showToast('⚠ Upload an image first.');
+  const ow = src.naturalWidth  || src.width  || imgW;
+  const oh = src.naturalHeight || src.height || imgH;
+  const c   = makeCanvas(ow, oh);
+  const ctx = c.getContext('2d');
+  if (dir === 'h') { ctx.translate(ow, 0); ctx.scale(-1, 1); }
+  else             { ctx.translate(0, oh); ctx.scale(1, -1); }
+  ctx.drawImage(src, 0, 0, ow, oh);
+  showRotateResult(c);
+}
+
+function showRotateResult(c) {
+  const url = c.toDataURL('image/png');
+  const img = new Image();
+  img.src = url;
+  rotatedImage = img;
+  document.getElementById('rotatePreviewImg').src = url;
+  document.getElementById('rotatePreview').style.display = 'block';
+  const link = document.getElementById('rotateLink');
+  link.href     = url;
+  link.download = imgName + '_rotated.png';
+  document.getElementById('rotateName').textContent = imgName + '_rotated.png';
+  document.getElementById('rotateResult').classList.add('show');
+  showToast('🔃 Transform applied');
+}
+
+// ── Filters ──
+function initFilterPreview() {
+  if (!currentImage) return;
+  applyFilters();
+}
+
+function applyFilters() {
+  if (!currentImage) return;
+  const c   = makeCanvas(imgW, imgH);
+  const ctx = c.getContext('2d');
+  const brt = document.getElementById('brt').value;
+  const cnt = document.getElementById('cnt').value;
+  const sat = document.getElementById('sat').value;
+  const blr = document.getElementById('blr').value;
+  const gry = document.getElementById('gry').value;
+  ctx.filter = `brightness(${brt}%) contrast(${cnt}%) saturate(${sat}%) blur(${blr}px) grayscale(${gry}%)`;
+  ctx.drawImage(currentImage, 0, 0, imgW, imgH);
+  filterCanvas = c;
+  document.getElementById('filterPreviewImg').src = c.toDataURL();
+  document.getElementById('filterPreview').style.display = 'block';
+}
+
+function doFilter() {
+  if (!filterCanvas) return showToast('⚠ Upload an image first.');
+  const url = filterCanvas.toDataURL('image/png');
+  const link = document.getElementById('filterLink');
+  link.href     = url;
+  link.download = imgName + '_filtered.png';
+  document.getElementById('filterName').textContent = imgName + '_filtered.png';
+  document.getElementById('filterResult').classList.add('show');
+  showToast('🎨 Filters applied & ready to download');
+}
+</script>
 </body>
-
 </html>
